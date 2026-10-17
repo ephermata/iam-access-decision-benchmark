@@ -106,6 +106,27 @@ Metrics reported:
 See `prompt_template.md` for how to pose a case to a decision model
 (state/question framing for Sage-style and Jev-style APIs).
 
+## Runners
+
+`runners/` holds one script per model; each writes a predictions JSONL that
+`eval.py` scores. `run_all.sh` runs everything it has credentials for.
+
+| Script | Model | Needs |
+|---|---|---|
+| `runners/run_jev.py` | TypeSafe Jev (`--model jev-latest`; pin e.g. `jev-1.14.0` for repro) | `TYPESAFE_API_KEY` — create at console.typesafe.ai → API Keys |
+| `runners/run_sage.py` | Levanto Sage | `LEVANTO_API_KEY` — see script header |
+| `runners/run_laya.py` | Laya (open weights, local) | `pip install laya`; first run downloads the checkpoint |
+
+```bash
+cp .env.example .env   # fill in keys; never commit .env
+source .env
+./run_all.sh           # runners + eval.py per model -> report_*.md
+```
+
+Keys live in the environment, never in the repo. Laya runs on CPU
+(~200–500 ms/request); the hosted APIs cost fractions of a cent for all
+36 cases.
+
 ## Interpreting results
 
 - A model can score 90%+ accuracy and still be unusable if its false grants
