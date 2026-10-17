@@ -1,86 +1,76 @@
 #!/usr/bin/env python3
-"""Run the IAM benchmark against Laya, the open-weights decision model.
+"""Run the IAM access-decision benchmark against Laya (open weights, local).
 
-Laya (Convai Innovations, Apache-2.0) is a non-autoregressive System 1
-decision model: typed choice/score/yes-no answers in a single forward pass.
-Checkpoints: laya (English, 421M), laya-multilingual (322M), and
-laya-typed-decisions (fine-tuned on the typed-decisions workflows).
+Uses the real laya package API:
+    runner = laya.load()                      # downloads convaiinnovations/laya (421M)
+    out = runner.system_one(state, {"q": {"type": "choice",
+        "instructions": "...", "criteria": {"grant": "...", "deny": "...", "escalate": "..."}}})
+    -> {"answers": {"q": "grant"}, "probabilities": {"q": {...}}, ...}
 
-Setup:
-    python3 -m venv .venv && . .venv/bin/activate
-    pip install laya            # pulls torch; ~2 GB with weights
-    # first run downloads the checkpoint from Hugging Face
-    # (set HF_HOME to keep weights outside ~/.cache if you prefer)
+Zero-shot: no fine-tuning, no per-case calibration. The base checkpoint is expected
+to be weak on business decisions (its README says as much) -- that is the baseline
+the hosted models are measured against.
 
-Usage:
-    python3 runners/run_laya.py [--model routed] [--out predictions_laya.jsonl]
-                                [--limit 5] [--preload]
-
---model: checkpoint routing. Default "routed" lets Laya's Router pick per
-request (English text -> English checkpoint). Pass "multilingual" to pin
-the multilingual checkpoint, or "typed-decisions" for the fine-tuned one.
-
-Honest-limits note (from Laya's own README): the base checkpoints are
-near chance zero-shot on business decisions (0.362 vs 0.318 random on
-typed-decisions); the 0.766 figure is the fine-tuned checkpoint on its own
-training domain. Expect modest zero-shot scores here — that IS the result.
-Fine-tuning on your own labeled decisions is where accuracy jumps.
+Writes predictions_laya.jsonl (same schema as run_jev/run_sage).
 """
-
-import argparse
+import json
 import os
 import sys
+import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import (CRITERIA, INSTRUCTIONS, DECISIONS, main_loop,  # noqa: E402
-                    repo_root)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from common import load_cases, render_state, INSTRUCTIONS, CRITERIA  # noqa: E402
 
+CASES_PATH = os.environ.get("CASES_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cases.jsonl"))
+OUT_PATH = os.environ.get("OUT_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "predictions_laya.jsonl"))
 
-def laya_decide(router, model, state):
-    questions = {
-        "decision": {
-            "type": "choice",
-            "instructions": INSTRUCTIONS,
-            "criteria": CRITERIA,
-        }
+QUESTIONS = {
+    "decision": {
+        "type": "choice",
+        "instructions": INSTRUCTIONS,
+        "criteria": CRITERIA,
     }
-    kwargs = {} if model == "routed" else {"model": model}
-    result = router.predict(state, questions, **kwargs)
-    ans = result["answers"]["decision"]
-    decision = ans.get("choice")
-    if decision not in DECISIONS:
-        raise ValueError(f"unexpected choice {decision!r}; "
-                         f"answer keys: {sorted(ans.keys())}")
-    confidence = ans.get("confidence")
-    if confidence is None:
-        confidence = (ans.get("probabilities") or {}).get(decision, 0.5)
-    return decision, float(confidence), []
+}
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default="routed",
-                    help="'routed' (default), 'multilingual', 'typed-decisions'")
-    ap.add_argument("--out", default=None)
-    ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--preload", action="store_true",
-                    help="load all checkpoints up front")
-    args = ap.parse_args()
+    import laya
 
-    try:
-        from laya import Router
-    except ImportError:
-        sys.exit("the 'laya' package is not installed: pip install laya")
+    t0 = time.time()
+    print("Loading Laya model (first run downloads ~421M params from HF)...", flush=True)
+    runner = laya.load()
+    print(f"Model loaded in {time.time() - t0:.1f}s", flush=True)
 
-    print("[laya] loading router (first run downloads the checkpoint)...",
-          flush=True)
-    router = Router(preload=args.preload)
+    cases = load_cases(CASES_PATH)
+    print(f"Running {len(cases)} cases...", flush=True)
 
-    out = args.out or os.path.join(
-        repo_root(), f"predictions_laya_{args.model}.jsonl")
-    main_loop("laya",
-              lambda case, state: laya_decide(router, args.model, state),
-              out, limit=args.limit, delay=0.1)
+    with open(OUT_PATH, "w") as f:
+        for i, case in enumerate(cases):
+            state = render_state(case)
+            t1 = time.time()
+            out = runner.system_one(state, QUESTIONS)
+            latency_ms = (time.time() - t1) * 1000.0
+
+            # system_one -> {"answers": {"decision": {"choice": ..., "probabilities": {...}}}, ...}
+            ans = (out.get("answers", {}) or {}).get("decision", {}) or {}
+            chosen = ans.get("choice")
+            prob = None
+            pq = ans.get("probabilities") or {}
+            if chosen in pq:
+                prob = float(pq[chosen])
+
+            if chosen not in ("grant", "deny", "escalate"):
+                chosen, prob = "escalate", 0.0
+            rec = {
+                "id": case["id"],
+                "decision": chosen,
+                "confidence": round(float(prob), 4) if prob is not None else 0.0,
+                "conditions": [],
+            }
+            f.write(json.dumps(rec) + "\n")
+            print(f"  [{i+1}/{len(cases)}] {case['id']}: {chosen} p={prob} ({latency_ms:.0f}ms)", flush=True)
+
+    print(f"Wrote {OUT_PATH}")
 
 
 if __name__ == "__main__":
