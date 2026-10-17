@@ -1,0 +1,36 @@
+{"id": "BIRTH-001", "decision": "grant", "confidence": 0.9, "conditions": []}
+{"id": "BIRTH-002", "decision": "grant", "confidence": 0.9, "conditions": ["pii_masked_view_only"]}
+{"id": "BIRTH-003", "decision": "grant", "confidence": 0.9, "conditions": ["read_only"]}
+{"id": "PEER-001", "decision": "grant", "confidence": 0.9, "conditions": ["deidentified_mart_only"]}
+{"id": "PEER-002", "decision": "grant", "confidence": 0.9, "conditions": ["read_only"]}
+{"id": "PEER-003", "decision": "grant", "confidence": 0.9, "conditions": ["aggregated_metrics_only"]}
+{"id": "SOD-001", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "SOD-002", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "SOD-003", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "CREEP-001", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "CREEP-002", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "CREEP-003", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "JIT-001", "decision": "grant", "confidence": 0.9, "conditions": ["expires_in_8h", "linked_to_incident_INC-8821", "no_standing_access"]}
+{"id": "JIT-002", "decision": "grant", "confidence": 0.9, "conditions": ["expires_in_3d", "pii_unmask_approved", "query_logging_enabled"]}
+{"id": "JIT-003", "decision": "grant", "confidence": 0.9, "conditions": ["expires_in_14d", "staging_only", "sow_RT-2026-08"]}
+{"id": "CONT-001", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "CONT-002", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "CONT-003", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "BG-001", "decision": "escalate", "confidence": 0.9, "conditions": ["grant_with_session_recording", "expires_in_4h", "second_approver_required", "post_incident_review"]}
+{"id": "BG-002", "decision": "escalate", "confidence": 0.9, "conditions": ["grant_with_session_recording", "expires_in_24h", "scoped_to_incident_assets", "post_incident_review"]}
+{"id": "BG-003", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "ADV-001", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "ADV-002", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "ADV-003", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "RES-001", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "RES-002", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "RES-003", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "MOVE-001", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "MOVE-002", "decision": "grant", "confidence": 0.9, "conditions": []}
+{"id": "MOVE-003", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "NHI-001", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "NHI-002", "decision": "deny", "confidence": 0.9, "conditions": []}
+{"id": "NHI-003", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "EDGE-001", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "EDGE-002", "decision": "escalate", "confidence": 0.9, "conditions": []}
+{"id": "EDGE-003", "decision": "escalate", "confidence": 0.9, "conditions": []}
